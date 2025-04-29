@@ -5,14 +5,31 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorAKey = GlobalKey<NavigatorState>(debugLabel: 'shellA');
 final _shellNavigatorBKey = GlobalKey<NavigatorState>(debugLabel: 'shellB');
 
+bool isLoggedIn = false; // Simulate login state
+
 final goRouter = GoRouter(
-  initialLocation: '/a',
+  initialLocation: '/login',
   navigatorKey: _rootNavigatorKey,
   debugLogDiagnostics: true,
   errorBuilder: (context, state) {
     return ErrorScreen(error: state.error.toString());
   },
+  redirect: (context, state) {
+    // If not logged in, redirect to the login page
+    if (!isLoggedIn && state.matchedLocation != '/login') {
+      return '/login';
+    }
+    // If logged in, ensure the user does not go to the login page
+    if (isLoggedIn  && state.matchedLocation == '/login') {
+      return '/a'; // Default to Section A
+    }
+    return null;
+  },
   routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return ScaffoldWithNestedNavigation(navigationShell: navigationShell);
@@ -78,8 +95,7 @@ class ScaffoldWithNestedNavigation extends StatelessWidget {
   const ScaffoldWithNestedNavigation({
     Key? key,
     required this.navigationShell,
-  }) : super(
-            key: key ?? const ValueKey<String>('ScaffoldWithNestedNavigation'));
+  }) : super(key: key ?? const ValueKey<String>('ScaffoldWithNestedNavigation'));
   final StatefulNavigationShell navigationShell;
 
   void _goBranch(int index) {
@@ -251,6 +267,26 @@ class DetailsScreenState extends State<DetailsScreen> {
               child: const Text('Increment counter'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Login')),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            isLoggedIn = true; // Set login state to true
+            context.go('/a'); // Navigate to Section A after login
+          },
+          child: const Text('Log In'),
         ),
       ),
     );
