@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+part 'main.g.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorAKey = GlobalKey<NavigatorState>(debugLabel: 'shellA');
@@ -7,8 +8,68 @@ final _shellNavigatorBKey = GlobalKey<NavigatorState>(debugLabel: 'shellB');
 
 bool isLoggedIn = false; // Simulate login state
 
+// Define typed routes using TypedGoRoute
+@TypedGoRoute<LoginRoute>(
+  path: '/login',
+)
+class LoginRoute extends GoRouteData {
+  const LoginRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) => const LoginScreen();
+}
+
+@TypedGoRoute<RootARoute>(
+  path: '/a',
+  routes: [
+    TypedGoRoute<DetailsARoute>(path: 'details'),
+  ],
+)
+class RootARoute extends GoRouteData {
+  const RootARoute();
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) =>
+      const NoTransitionPage(
+        child: RootScreen(label: 'A', detailsPath: '/a/details'),
+      );
+}
+
+class DetailsARoute extends GoRouteData {
+  const DetailsARoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const DetailsScreen(label: 'A');
+}
+
+@TypedGoRoute<RootBRoute>(
+  path: '/b',
+  routes: [
+    TypedGoRoute<DetailsBRoute>(path: 'details'),
+  ],
+)
+class RootBRoute extends GoRouteData {
+  const RootBRoute();
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) =>
+      const NoTransitionPage(
+        child: RootScreen(label: 'B', detailsPath: '/b/details'),
+      );
+}
+
+class DetailsBRoute extends GoRouteData {
+  const DetailsBRoute();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const DetailsScreen(label: 'B');
+}
+
+// GoRouter configuration
 final goRouter = GoRouter(
-  initialLocation: '/login',
+  initialLocation: LoginRoute().location,
   navigatorKey: _rootNavigatorKey,
   debugLogDiagnostics: true,
   errorBuilder: (context, state) {
@@ -16,20 +77,17 @@ final goRouter = GoRouter(
   },
   redirect: (context, state) {
     // If not logged in, redirect to the login page
-    if (!isLoggedIn && state.matchedLocation != '/login') {
-      return '/login';
+    if (!isLoggedIn && state.matchedLocation != LoginRoute().location) {
+      return LoginRoute().location;
     }
     // If logged in, ensure the user does not go to the login page
-    if (isLoggedIn  && state.matchedLocation == '/login') {
-      return '/a'; // Default to Section A
+    if (isLoggedIn && state.matchedLocation == LoginRoute().location) {
+      return RootARoute().location; // Default to Section A
     }
     return null;
   },
   routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
+    $loginRoute,
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return ScaffoldWithNestedNavigation(navigationShell: navigationShell);
@@ -38,35 +96,13 @@ final goRouter = GoRouter(
         StatefulShellBranch(
           navigatorKey: _shellNavigatorAKey,
           routes: [
-            GoRoute(
-              path: '/a',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: RootScreen(label: 'A', detailsPath: '/a/details'),
-              ),
-              routes: [
-                GoRoute(
-                  path: 'details',
-                  builder: (context, state) => const DetailsScreen(label: 'A'),
-                ),
-              ],
-            ),
+            $rootARoute,
           ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellNavigatorBKey,
           routes: [
-            GoRoute(
-              path: '/b',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: RootScreen(label: 'B', detailsPath: '/b/details'),
-              ),
-              routes: [
-                GoRoute(
-                  path: 'details',
-                  builder: (context, state) => const DetailsScreen(label: 'B'),
-                ),
-              ],
-            ),
+            $rootBRoute,
           ],
         ),
       ],
@@ -223,7 +259,14 @@ class RootScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge),
             const Padding(padding: EdgeInsets.all(4)),
             TextButton(
-              onPressed: () => context.go(detailsPath),
+              onPressed: () {
+                // Use typed navigation
+                if (label == 'A') {
+                  DetailsARoute().go(context);
+                } else {
+                  DetailsBRoute().go(context);
+                }
+              },
               child: const Text('View details'),
             ),
           ],
@@ -284,7 +327,7 @@ class LoginScreen extends StatelessWidget {
         child: ElevatedButton(
           onPressed: () {
             isLoggedIn = true; // Set login state to true
-            context.go('/a'); // Navigate to Section A after login
+            RootARoute().go(context); // Navigate to Section A after login
           },
           child: const Text('Log In'),
         ),
@@ -317,7 +360,7 @@ class ErrorScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () => context.go('/a'),
+              onPressed: () => RootARoute().go(context),
               child: const Text('Go Home'),
             ),
           ],
