@@ -30,10 +30,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data 
-                    android:scheme="https"
-                    android:host="legendary-rugelach-6cae62.netlify.app"
-                    android:pathPrefix="/details" />
+                <data android:scheme="http" android:host="https://legendary-rugelach-6cae62.netlify.app"/>
+                <data android:scheme="https" />
             </intent-filter>
 
 
